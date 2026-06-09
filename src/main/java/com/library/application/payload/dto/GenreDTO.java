@@ -1,0 +1,48 @@
+package com.library.application.payload.dto;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class GenreDTO {
+    private Long id;
+
+    @NotBlank(message = "Genre code is mandatory")
+    @Size(min = 2, max = 50, message = "Genre code must be between 2 and 50 characters")
+    @Pattern(regexp = "^[A-Z_]+$", message = "Genre code must contain only uppercase letters and underscores")
+    private String code;
+
+    @NotBlank(message = "Genre name is mandatory")
+    @Size(min = 2, max = 100, message = "Genre name must be between 2 and 100 characters")
+    private String name;
+
+    @Size(max = 500, message = "Description must not exceed 500 characters")
+    private String description;
+
+    @Min(value = 0, message = "Display order cannot be negative")
+    private Integer displayOrder;
+
+    private Boolean active;
+
+    private Long parentGenreId;
+
+    private String parentGenreName;
+
+    private List<GenreDTO> subGenres;
+
+    private Long bookCount;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+}
