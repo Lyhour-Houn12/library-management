@@ -33,8 +33,7 @@ public class JwtProvider {
     public String getEmailFromJwtToken(String jwt){
         jwt = jwt.substring(7);
         Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(jwt).getPayload();
-        String email = String.valueOf(claims.get("email"));
-        return email;
+        return String.valueOf(claims.get("email"));
     }
 
     private String collectingRoles(Collection<? extends GrantedAuthority> authorities){

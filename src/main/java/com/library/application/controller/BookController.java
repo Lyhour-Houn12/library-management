@@ -21,14 +21,7 @@ import java.util.List;
 public class BookController {
     private final BookService bookService;
 
-    @PostMapping
-    public ResponseEntity<?> createBook(@Valid @RequestBody BookDTO bookDTO){
-        try{
-            return ResponseEntity.ok(bookService.createBook(bookDTO));
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(new ApiResponse("Error creating book", false));
-        }
-    }
+
 
     @PostMapping("/bulks")
     public ResponseEntity<?> createBookBulk(@Valid @RequestBody List<BookDTO> bookDTOs){
