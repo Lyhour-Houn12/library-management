@@ -2,14 +2,21 @@ package com.library.application.service.impl;
 
 import com.library.application.config.JwtProvider;
 import com.library.application.domain.UserRole;
+import com.library.application.entity.ResetPasswordToken;
 import com.library.application.entity.User;
+import com.library.application.exception.BadCredentialException;
 import com.library.application.exception.UserException;
 import com.library.application.mapper.UserMapper;
 import com.library.application.payload.dto.UserDTO;
 import com.library.application.payload.response.AuthResponse;
+import com.library.application.repository.PasswordResetTokenRepository;
 import com.library.application.repository.UserRepository;
 import com.library.application.service.AuthService;
+import com.library.application.service.EmailService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -20,6 +27,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +38,12 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final JwtProvider jwtProvider;
     private final CustomUserServiceImpl customUserService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
+
+    @Value("${app.frontend.reset-url}")
+    private String frontendUrl;
+
     @Override
     // @TODO improve phone number
     public AuthResponse signup(UserDTO userDTO) {
@@ -43,7 +58,7 @@ public class AuthServiceImpl implements AuthService {
         createUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         createUser.setFullName(userDTO.getFullName());
         createUser.setPhone(userDTO.getPhone());
-        createUser.setRole(UserRole.USER);
+        createUser.setRole(UserRole.ROLE_USER);
         createUser.setUsername(userDTO.getUsername());
         createUser.setLastLogin(LocalDateTime.now());
         createUser.setCreatedAt(LocalDateTime.now());
@@ -106,12 +121,51 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void createPasswordResetToken(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UserException("User not found"));
+
+        String token = UUID.randomUUID().toString();
+        ResetPasswordToken resetPasswordToken = ResetPasswordToken.builder()
+                .expiryDate(LocalDateTime.now().plusMinutes(5))
+                .user(user)
+                .token(token)
+                .build();
+
+        passwordResetTokenRepository.save(resetPasswordToken);
+
+        String resetLink = frontendUrl + token;
+        String subject = "Password Reset Token";
+        String body = "Your requested to request your password. Use this link (valid 5 minutes): " + resetLink;
+
+        emailService.sendEmail(user.getEmail(), subject, body);
 
     }
 
     @Override
+    @Transactional
     public void resetPassword(String token, String newPassword) {
+        Optional<ResetPasswordToken> resetPasswordToken = passwordResetTokenRepository.findByToken(token);
+        if(resetPasswordToken.isEmpty()){
+            throw new BadCredentialsException("Invalid or Expired Token");
+        }
+
+        ResetPasswordToken resetToken = resetPasswordToken.get();
+
+        if(resetToken.isExpired()){
+            // token expired - delete it
+            passwordResetTokenRepository.delete(resetToken);
+            throw new BadCredentialsException("Invalid or Expired Token");
+        }
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // delete token after successful reset
+        passwordResetTokenRepository.delete(resetToken);
+
+
 
     }
 }
