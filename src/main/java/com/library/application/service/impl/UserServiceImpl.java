@@ -41,9 +41,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO getUserById(Long userId) {
-        User user =  userRepository.findById(userId).orElseThrow(() -> new UserException("User not found"));
-        return userMapper.toDTO(user);
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserException("User not found"));
+
     }
 
     @Override
@@ -74,7 +75,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserException("User not found"));
+
+    }
+
+    @Override
     public long getTotalUserCount() {
         return userRepository.count();
     }
+
+
+
 }

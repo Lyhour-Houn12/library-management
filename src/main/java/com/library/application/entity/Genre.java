@@ -14,11 +14,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Table(name = "genres")
+
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@Table(name = "genres")
 public class Genre {
 
     @Id
