@@ -2,6 +2,7 @@ package com.library.application.service;
 
 import com.library.application.exception.GenreException;
 import com.library.application.payload.dto.GenreDTO;
+import com.library.application.payload.response.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -30,7 +31,7 @@ public interface GenreService {
 
     List<GenreDTO> getSubGenresByParentId(Long parentGenreId) ;
 
-    Page<GenreDTO> searchGenres(String searchTerm, Pageable pageable);
+    PageResponse<GenreDTO> searchGenres(String searchTerm, Pageable pageable);
 
     long getTotalActiveGenres();
 

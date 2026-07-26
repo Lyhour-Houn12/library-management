@@ -18,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
-public class SubscriptionPlanImpl implements SubscriptionPlanService {
+public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final SubscriptionPlanMapper subscriptionPlanMapper;
     private final UserService userService;
@@ -28,7 +28,7 @@ public class SubscriptionPlanImpl implements SubscriptionPlanService {
         log.info("Creating subscription plan {}", planDTO.getPlanCode());
 
         if(subscriptionPlanRepository.existsByPlanCode(planDTO.getPlanCode())) {
-            throw new RuntimeException("Plan code already exists");
+            throw new SubscriptionPlanException("Plan code already exists");
         }
 
         SubscriptionPlan  subscriptionPlan = subscriptionPlanMapper.toEntity(planDTO);

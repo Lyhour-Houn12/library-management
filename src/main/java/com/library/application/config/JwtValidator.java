@@ -1,6 +1,7 @@
 package com.library.application.config;
 
 
+import com.library.application.exception.BadCredentialException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -43,7 +44,7 @@ public class JwtValidator extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }catch (Exception e){
-                throw new BadCredentialsException("Invalid JWT token");
+                throw new BadCredentialException("Invalid JWT token");
             }
         }
         filterChain.doFilter(request, response);

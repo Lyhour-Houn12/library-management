@@ -34,6 +34,34 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse(ex.getMessage(), false));
     }
+    @ExceptionHandler(SubscriptionException.class)
+    public ResponseEntity<ApiResponse> handleSubscriptionException(SubscriptionException ex){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ApiResponse> handlePaymentHandler(PaymentException ex){
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
+    @ExceptionHandler(BadCredentialException.class)
+    public ResponseEntity<ApiResponse> handleBadCredentialEvent(BadCredentialException ex){
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
+
+    @ExceptionHandler(BookLoanException.class)
+    public ResponseEntity<ApiResponse> handleBookLoanException(BookLoanException ex){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
+
+    @ExceptionHandler(FineException.class)
+    public ResponseEntity<ApiResponse> handleFineException(FineException ex){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
+
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ValidationErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){

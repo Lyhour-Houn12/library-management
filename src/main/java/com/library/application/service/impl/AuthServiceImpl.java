@@ -33,6 +33,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+    private final static Long EXPIRATION_TIME = 5L;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
@@ -58,6 +59,7 @@ public class AuthServiceImpl implements AuthService {
         createUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         createUser.setFullName(userDTO.getFullName());
         createUser.setPhone(userDTO.getPhone());
+        createUser.setVerified(true);
         createUser.setRole(UserRole.ROLE_USER);
         createUser.setUsername(userDTO.getUsername());
         createUser.setLastLogin(LocalDateTime.now());
@@ -84,8 +86,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse login(String username, String password) {
         Authentication authentication = authenticate(username, password);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-
+        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities(); // not used yet
         String roles = authorities.iterator().next().getAuthority(); // loop to get role || authorities
         String token = jwtProvider.generateToken(authentication);
 
@@ -127,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
 
         String token = UUID.randomUUID().toString();
         ResetPasswordToken resetPasswordToken = ResetPasswordToken.builder()
-                .expiryDate(LocalDateTime.now().plusMinutes(5))
+                .expiryDate(LocalDateTime.now().plusMinutes(EXPIRATION_TIME))
                 .user(user)
                 .token(token)
                 .build();
@@ -164,8 +165,6 @@ public class AuthServiceImpl implements AuthService {
 
         // delete token after successful reset
         passwordResetTokenRepository.delete(resetToken);
-
-
 
     }
 }

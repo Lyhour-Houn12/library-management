@@ -37,6 +37,11 @@ public class SubscriptionPlan {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @NotNull(message = "Duration is mandatory")
+    @Positive(message = "Duration must be positive")
+    @Column(name = "duration_days", nullable = false)
+    private Integer durationDays;
+
     @NotNull(message = "Price is required")
     @Positive(message = "Price has to be positive")
     @Column(name = "price", nullable = false)
@@ -52,6 +57,11 @@ public class SubscriptionPlan {
     @Positive(message = "Max books allowed must be positive")
     @Column(name = "max_book_allowed", nullable = false)
     private Integer maxBookAllowed;
+
+    @NotNull(message = "Max days per book is mandatory")
+    @Positive(message = "Max days must be positive")
+    @Column(name = "max_days_per_book", nullable = false)
+    private Integer maxDaysPerBook;
 
     @Column(name = "display_order")
     private Integer displayOrder = 0;

@@ -4,6 +4,7 @@ import com.library.application.entity.Genre;
 import com.library.application.exception.GenreException;
 import com.library.application.mapper.GenreMapper;
 import com.library.application.payload.dto.GenreDTO;
+import com.library.application.payload.response.PageResponse;
 import com.library.application.repository.GenreRepository;
 import com.library.application.service.GenreService;
 import lombok.RequiredArgsConstructor;
@@ -93,6 +94,29 @@ public class GenreServiceImpl implements GenreService {
     public GenreDTO updateGenre(Long genreId, GenreDTO genreDTO) {
         Genre existingGenre = genreRepository.findById(genreId)
                 .orElseThrow(() -> new GenreException("Genre with id: " + genreId + " not found" ));
+        // Check if code is being changed and if new code already exists
+        if(!existingGenre.getCode().equals(genreDTO.getCode())){
+            if(genreRepository.existsByCode(genreDTO.getCode())){
+                throw new GenreException("Genre with code " + genreDTO.getCode() + " already exists");
+            }
+        }
+        // validate parent genre if provided
+        if(genreDTO.getParentGenreId() != null){
+            // Can not set self as parent
+            if(genreDTO.getParentGenreId().equals(genreId)){
+                throw new GenreException("Genre can not be its own");
+            }
+
+            Genre parentGenre = genreRepository.findById(genreDTO.getParentGenreId())
+                    .orElseThrow(() -> new GenreException("Parent genre with ID " + genreDTO.getParentGenreId() + " not found"));
+            if (!parentGenre.getActive()) {
+                throw new GenreException("Cannot set an inactive genre as parent");
+            }
+            if(isCircularReference(genreId, genreDTO.getParentGenreId())){
+                throw new GenreException("Circular reference detected: parent genre cannot be a descendant of this genre");
+            }
+
+        }
 
         genreMapper.updateEntityFromDto(genreDTO, existingGenre);
         Genre updatedGenre =  genreRepository.save(existingGenre);
@@ -110,57 +134,101 @@ public class GenreServiceImpl implements GenreService {
     public void hardDeleteGenre(Long genreId) {
         Genre existingGenre = genreRepository.findById(genreId)
                 .orElseThrow(() -> new GenreException("Genre with id: " + genreId + " not found" ));
+        // check if genre is in use
+        if(genreRepository.isGenreInUse(genreId)){
+            throw new GenreException("Can not delete genre: it is currently assigned to one or more books");
+        }
+
+        // Check if genre has sub-genres
+        if(!existingGenre.getSubGenres().isEmpty()){
+            throw new GenreException("Can not delete genre: it has sub-genres. Delete or reassign sub-genres first");
+        }
+
         genreRepository.delete(existingGenre);
     }
+
     @Override
-    public List<GenreDTO> getAllActiveGenresWithSubGenres() {
-        List<Genre> topLevelGenres = genreRepository.findByParentGenreIsNullAndActiveTrueOrderByDisplayOrderAsc();
-        return genreMapper.toDTOList(topLevelGenres);
+    public GenreDTO getGenreByCode(String code) {
+        Genre genre = genreRepository.findByCode(code)
+                .orElseThrow(() -> new GenreException("Genre with code: " + code + " not found"));
+        return genreMapper.toDTO(genre);
     }
+
+    // ==================== QUERY OPERATIONS ====================
+
     @Override
     public List<GenreDTO> getTopLevelGenres() {
         List<Genre> topLevelGenres = genreRepository.findByParentGenreIsNullAndActiveTrueOrderByDisplayOrderAsc();
-        return genreMapper.toDTOList(topLevelGenres);
+        return genreMapper.toDTOList(topLevelGenres, true); // include sub-genres for hierarchical view
+    }
+
+
+    @Override
+    public List<GenreDTO> getAllActiveGenres() {
+        List<Genre> genres = genreRepository.findByActiveTrueOrderByDisplayOrderAsc();
+        return genreMapper.toDTOList(genres, false);
+    }
+
+    @Override
+    public List<GenreDTO> getAllActiveGenresWithSubGenres() {
+        // Only fetch top-level genres (genres with no parent)
+        List<Genre> genres = genreRepository.findByActiveTrueOrderByDisplayOrderAsc();
+        // Convert to DTOs with sub-genres included (recursive)
+        return genreMapper.toDTOList(genres, true);
+    }
+
+    @Override
+    public PageResponse<GenreDTO> searchGenres(String searchTerm, Pageable pageable) {
+        Page<Genre> genrePage = genreRepository.searchGenres(searchTerm, pageable);
+        return null;
+    }
+
+    @Override
+    public List<GenreDTO> getSubGenresByParentId(Long parentGenreId) {
+        if(!genreRepository.existsById(parentGenreId)){
+            throw new GenreException("Parent genre with ID: " + parentGenreId + " not found");
+        }
+        List<Genre> genre = genreRepository.findByParentGenreIdAndActiveTrueOrderByDisplayOrderAsc(parentGenreId);
+        return genreMapper.toDTOList(genre, true);
+    }
+
+    // ==================== STATISTICS ====================
+
+    @Override
+    public boolean isGenreInUse(Long genreId) {
+        if(!genreRepository.existsById(genreId)){
+            throw new GenreException("Genre with id: " + genreId + " not found");
+        }
+        return genreRepository.isGenreInUse(genreId);
+    }
+
+    @Override
+    public long getBookCountByGenre(Long genreId) {
+        if(!genreRepository.existsById(genreId)){
+            throw new GenreException("Genre with id: " + genreId + " not found");
+        }
+        return genreRepository.countBooksByGenre(genreId);
     }
     @Override
     public long getTotalActiveGenres() {
         return genreRepository.countByActiveTrue();
     }
 
-    @Override
-    public List<GenreDTO> getAllActiveGenres() {
-
-        return List.of();
-    }
-
-    @Override
-    public GenreDTO getGenreByCode(String code) {
-
-        return null;
-    }
-
-
-
-    @Override
-    public List<GenreDTO> getSubGenresByParentId(Long parentGenreId) {
-        return List.of();
-    }
-
-    @Override
-    public Page<GenreDTO> searchGenres(String searchTerm, Pageable pageable) {
-        return null;
-    }
-
-
-
-    @Override
-    public long getBookCountByGenre(Long genreId) {
-        return 0;
-    }
-
-    @Override
-    public boolean isGenreInUse(Long genreId) {
+    /**
+     * Check if setting a parent would create a circular reference
+     */
+    private boolean isCircularReference(Long genreId, Long parentGenreId) {
+        Genre parent = genreRepository.findById(parentGenreId).orElse(null);
+        while (parent != null){
+            if(parent.getId().equals(genreId)){
+                return true;
+            }
+            parent = parent.getParentGenre();
+        }
         return false;
     }
+
+
+
 
 }
