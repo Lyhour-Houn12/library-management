@@ -20,6 +20,11 @@ import org.springframework.web.bind.annotation.*;
 public class SubscriptionController {
     private final SubscriptionService subscriptionService;
 
+    @PostMapping("/subscribe/no-payment")
+    public ResponseEntity<?> subscriptionWithNoPayment(@Valid @RequestBody SubscriptionRequest request) {
+        return new ResponseEntity<>(subscriptionService.createSubscription(request), HttpStatus.CREATED);
+    }
+
     @PostMapping("/subscribe")
     public ResponseEntity<?> subscription(@Valid @RequestBody SubscriptionRequest request) {
         PaymentInitiateResponse subscription = subscriptionService.createSubscriptionWithPayment(request);
@@ -51,8 +56,8 @@ public class SubscriptionController {
     }
 
     @PostMapping("/active")
-    public ResponseEntity<?> activeSubscription(@RequestParam Long subscriptionId){
-        return ResponseEntity.ok(subscriptionService.activateSubscription(subscriptionId));
+    public ResponseEntity<?> activeSubscription(@RequestParam Long subscriptionId, @RequestParam Long paymentId){
+        return ResponseEntity.ok(subscriptionService.activateSubscription(subscriptionId, paymentId));
     }
 
 
@@ -64,6 +69,11 @@ public class SubscriptionController {
         return ResponseEntity.ok(subscriptionService.getAllSubscriptions(pageable));
     }
 
+    @PostMapping("/renewed/{subscriptionId}")
+    public ResponseEntity<?> renewSubscription(@PathVariable Long subscriptionId, @RequestBody SubscriptionRequest request){
+        return ResponseEntity.ok(subscriptionService.renewSubscription(subscriptionId, request));
+    }
+
     @PostMapping("/admin/deactivate-expired")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deactivateExpiredSubscriptions() {
@@ -71,6 +81,11 @@ public class SubscriptionController {
         return ResponseEntity.ok(new ApiResponse(
                 "Expired subscriptions deactivated successfully"
                 ,true));
+    }
+
+    @GetMapping("/{subscriptionId}")
+    public ResponseEntity<?> getSubscription(@PathVariable Long subscriptionId){
+        return ResponseEntity.ok(subscriptionService.getSubscriptionById(subscriptionId));
     }
 
 }

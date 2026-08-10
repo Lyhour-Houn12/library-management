@@ -35,6 +35,7 @@ public class BookMapper {
         book.setDescription(bookDTO.getDescription());
         book.setTotalCopies(bookDTO.getTotalCopies());
         book.setAvailableCopies(bookDTO.getAvailableCopies());
+        book.setPage(bookDTO.getPages());
         book.setPrice(bookDTO.getPrice());
         book.setCoverImage(bookDTO.getCoverImageUrl());
         book.setActive(true);
@@ -43,6 +44,7 @@ public class BookMapper {
 
     public BookDTO toDTO(Book book) {
         BookDTO bookDTO = new BookDTO();
+        bookDTO.setBookId(book.getId());
         bookDTO.setIsbn(book.getIsbn());
         bookDTO.setAuthor(book.getAuthor());
         bookDTO.setTitle(book.getTitle());
@@ -60,6 +62,7 @@ public class BookMapper {
         bookDTO.setTotalCopies(book.getTotalCopies());
         bookDTO.setAvailableCopies(book.getAvailableCopies());
         bookDTO.setPrice(book.getPrice());
+        bookDTO.setPages(book.getPage());
         bookDTO.setCoverImageUrl(book.getCoverImage());
         bookDTO.setActive(book.getActive());
 
@@ -88,6 +91,7 @@ public class BookMapper {
         book.setDescription(bookDTO.getDescription());
         book.setTotalCopies(bookDTO.getTotalCopies());
         book.setAvailableCopies(bookDTO.getAvailableCopies());
+        book.setPage(bookDTO.getPages());
         book.setPrice(bookDTO.getPrice());
         book.setCoverImage(bookDTO.getCoverImageUrl());
 

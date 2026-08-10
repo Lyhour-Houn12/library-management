@@ -1,6 +1,6 @@
 package com.library.application.service.impl;
 
-import com.library.application.config.JwtProvider;
+import com.library.application.configurations.JwtProvider;
 import com.library.application.domain.UserRole;
 import com.library.application.entity.User;
 import com.library.application.exception.UserException;

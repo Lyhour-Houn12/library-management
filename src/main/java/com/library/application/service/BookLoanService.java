@@ -1,11 +1,9 @@
 package com.library.application.service;
 
 import com.library.application.domain.BookLoanStatus;
+import com.library.application.payload.CheckoutStatistics;
 import com.library.application.payload.dto.BookLoanDTO;
-import com.library.application.payload.request.BookLoanSearchRequest;
-import com.library.application.payload.request.CheckInRequest;
-import com.library.application.payload.request.CheckoutRequest;
-import com.library.application.payload.request.RenewalRequest;
+import com.library.application.payload.request.*;
 import com.library.application.payload.response.PageResponse;
 
 public interface BookLoanService {
@@ -19,6 +17,8 @@ public interface BookLoanService {
 
     BookLoanDTO renewalBookLoan(RenewalRequest request);
 
+    BookLoanDTO getBookLoanById(Long bookLoanId);
+
     PageResponse<BookLoanDTO> getBookLoans(BookLoanSearchRequest request);
 
     PageResponse<BookLoanDTO> getMyBookLoans(BookLoanStatus status,
@@ -29,4 +29,9 @@ public interface BookLoanService {
                                              Integer page, Integer size);
 
     Long updateOverdueBookLoans();
+
+
+    BookLoanDTO updateBookLoan(Long bookLoanId, UpdateBookLoanRequest updateRequest);
+
+    CheckoutStatistics getCheckoutStatistics();
 }

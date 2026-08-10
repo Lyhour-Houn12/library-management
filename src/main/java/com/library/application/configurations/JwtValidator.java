@@ -1,4 +1,4 @@
-package com.library.application.config;
+package com.library.application.configurations;
 
 
 import com.library.application.exception.BadCredentialException;
@@ -9,7 +9,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -20,7 +19,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -30,12 +28,11 @@ public class JwtValidator extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String jwt = request.getHeader(JwtConstant.JWT_HEADER);
-        if(jwt != null){
+        if(jwt != null && jwt.contains(JwtConstant.JWT_BEARER_PREFIX)){
             jwt = jwt.substring(7);
             try {
                 SecretKey key = Keys.hmacShaKeyFor(JwtConstant.JWT_SECRET_KEY.getBytes());
-                Claims claims = Jwts.parser().verifyWith(key).build()
-                        .parseSignedClaims(jwt).getPayload();
+                Claims claims = getClaims(key, jwt);
                 String email = String.valueOf(claims.get("email"));
                 String authorities = String.valueOf(claims.get("authorities"));
 
@@ -48,6 +45,15 @@ public class JwtValidator extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private Claims getClaims(SecretKey key ,String jwt) {
+         Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(jwt)
+                .getPayload();
+         return claims;
     }
 
 }

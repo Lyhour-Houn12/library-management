@@ -1,6 +1,7 @@
 package com.library.application.repository;
 
 import com.library.application.entity.Book;
+import com.library.application.entity.BookLoan;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -53,4 +54,6 @@ AND (
 
     @Query("SELECT sum(b.availableCopies) FROM Book b WHERE b.availableCopies > 0 AND b.active = false")
     Long countUnAvailableBooks();
+
+
 }

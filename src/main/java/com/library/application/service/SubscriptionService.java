@@ -17,9 +17,11 @@ public interface SubscriptionService {
 
     List<SubscriptionDTO> getUserSubscriptions(Long userId);
 
+    PaymentInitiateResponse renewSubscription(Long planId, SubscriptionRequest request);
+
     SubscriptionDTO getSubscriptionById(Long subscriptionId);
 
-    SubscriptionDTO activateSubscription(Long subscriptionId);
+    SubscriptionDTO activateSubscription(Long subscriptionId, Long paymentId);
 
     SubscriptionDTO cancelSubscription(Long subscriptionId, String reason);
     /*
@@ -27,7 +29,7 @@ public interface SubscriptionService {
      */
     List<SubscriptionDTO> getAllSubscriptions(Pageable pageable);
 
-    void deactivateExpiredSubscription();
+    void deactivateExpiredSubscription();  // not using yet will implement new method called scheduler
 
     /**
      * Check if user has valid subscription

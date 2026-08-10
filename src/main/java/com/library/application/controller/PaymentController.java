@@ -4,6 +4,7 @@ import com.library.application.payload.dto.PaymentDTO;
 import com.library.application.payload.request.PaymentInitiateRequest;
 import com.library.application.payload.request.PaymentVerifyRequest;
 import com.library.application.payload.response.PaymentInitiateResponse;
+import com.library.application.payload.response.RevenueStatisticResponse;
 import com.library.application.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,12 +32,12 @@ public class PaymentController {
         return new ResponseEntity<>(paymentService.verifyPayment(request), HttpStatus.OK);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{paymentId}")
     public ResponseEntity<?> getPayment(@PathVariable Long paymentId){
         return new ResponseEntity<>(paymentService.getPaymentById(paymentId), HttpStatus.OK);
     }
 
-    @GetMapping("/{transactionId}")
+    @GetMapping("/transaction/{transactionId}")
     public ResponseEntity<?> getPaymentByTransactionId(@PathVariable String transactionId){
         return new ResponseEntity<>(paymentService.getPaymentByTransactionId(transactionId), HttpStatus.OK);
     }
@@ -67,6 +69,27 @@ public class PaymentController {
     public ResponseEntity<?> retryPayment(@PathVariable Long id) {
             PaymentInitiateResponse response = paymentService.retryPayment(id);
             return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get revenue statistics for current month (Admin only)
+     * GET /api/payments/statistics/monthly-revenue
+     *
+     * Returns total revenue for the current month from completed payments
+     *
+     * Example response:
+     * {
+     *   "monthlyRevenue": 15250.50,
+     *   "currency": "USD",
+     *   "year": 2025,
+     *   "month": 10
+     * }
+     */
+    @GetMapping("/statistics/monthly-revenue")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RevenueStatisticResponse> getMonthlyRevenue() {
+        RevenueStatisticResponse stats = paymentService.getMonthlyRevenue();
+        return ResponseEntity.ok(stats);
     }
 
     /**

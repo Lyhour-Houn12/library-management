@@ -32,11 +32,11 @@ public class BookController {
         }
     }
 
-    @GetMapping("/{isbn}")
+    @GetMapping("/isbn/{isbn}")
     public ResponseEntity<?> getBookByIsbn(@PathVariable String isbn){
         return ResponseEntity.ok(bookService.getBookByIsbn(isbn));
     }
-    @PutMapping("/{bookId}")
+    @PutMapping("/update/{bookId}")
     public ResponseEntity<?> updateBook(@PathVariable Long bookId, @Valid @RequestBody BookDTO bookDTO){
         try{
             return ResponseEntity.ok(bookService.updateBook(bookId, bookDTO));
@@ -73,6 +73,11 @@ public class BookController {
     public ResponseEntity<PageResponse<BookDTO>> advancedSearch(@RequestBody BookSearchRequest bookSearchRequest){
         PageResponse<BookDTO> books =bookService.searchBookWithFilter(bookSearchRequest);
         return ResponseEntity.ok(books);
+    }
+
+    @GetMapping("/{bookId}")
+    public ResponseEntity<?> getBookById(@PathVariable Long bookId){
+       return  ResponseEntity.ok(bookService.getBookById(bookId));
     }
 
     @DeleteMapping("/{bookId}")

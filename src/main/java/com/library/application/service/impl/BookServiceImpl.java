@@ -1,13 +1,18 @@
 package com.library.application.service.impl;
 
+import com.library.application.domain.BookLoanStatus;
 import com.library.application.entity.Book;
+import com.library.application.entity.User;
 import com.library.application.exception.BookException;
 import com.library.application.mapper.BookMapper;
 import com.library.application.payload.dto.BookDTO;
 import com.library.application.payload.request.BookSearchRequest;
 import com.library.application.payload.response.PageResponse;
+import com.library.application.repository.BookLoanRepository;
 import com.library.application.repository.BookRepository;
+import com.library.application.repository.ReservationRepository;
 import com.library.application.service.BookService;
+import com.library.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +30,9 @@ public class BookServiceImpl implements BookService {
 
     private final BookMapper bookMapper;
     private final BookRepository bookRepository;
+    private final UserService userService;
+    private final BookLoanRepository bookLoanRepository;
+    private final ReservationRepository reservationRepository;
 
     @Override
     public BookDTO createBook(BookDTO bookDTO) {
@@ -120,6 +128,22 @@ public class BookServiceImpl implements BookService {
         return savedBook.stream()
                 .map(bookMapper::toDTO)
                 .toList();
+    }
+
+    @Override
+    public BookDTO getBookById(Long bookId) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new BookException(String.format("Book with id = %s not found", bookId)));
+        BookDTO bookDTO = bookMapper.toDTO(book);
+
+        User currentUser = userService.getCurrentUser();
+        boolean alreadyHasLoan = bookLoanRepository.existsByUserIdAndBookIdAndStatus(currentUser.getId(), bookId, BookLoanStatus.CHECKOUT);
+        boolean alreadyHaveReservation = reservationRepository.findActiveReservationByUserAndBook(currentUser.getId(), bookId).isPresent();
+
+        bookDTO.setAlreadyHaveLoan(alreadyHasLoan);
+        bookDTO.setAlreadyHaveReservation(alreadyHaveReservation);
+
+        return bookDTO;
     }
 
     @Override

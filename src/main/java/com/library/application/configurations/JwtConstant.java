@@ -1,4 +1,4 @@
-package com.library.application.config;
+package com.library.application.configurations;
 
 public class JwtConstant {
     public static final String JWT_HEADER = "Authorization";

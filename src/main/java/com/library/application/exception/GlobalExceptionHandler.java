@@ -61,6 +61,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse(ex.getMessage(), false));
     }
+    @ExceptionHandler(ReservationException.class)
+    public ResponseEntity<ApiResponse> handleReservationException(ReservationException ex){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
+    @ExceptionHandler(WishlistException.class)
+    public ResponseEntity<ApiResponse> handleWishlistException(WishlistException ex){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
+
+
+    @ExceptionHandler(BookReviewException.class)
+    public ResponseEntity<ApiResponse> handleBookReviewException(BookReviewException ex){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
 
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

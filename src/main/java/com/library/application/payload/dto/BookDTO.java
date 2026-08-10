@@ -15,7 +15,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class BookDTO {
 
+    private Long bookId;
+
     @NotBlank(message = "ISBN is mandatory")
+    @Pattern(regexp = "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$",
+            message = "ISBN format is invalid")
     private String isbn;
 
     @NotBlank(message = "Title is mandatory")
@@ -63,10 +67,11 @@ public class BookDTO {
     @Size(max = 500, message = "Image URL must not exceed 500 characters")
     private String coverImageUrl;
 
+    private Boolean active;
+
+
     private Boolean alreadyHaveLoan;
     private Boolean alreadyHaveReservation;
-
-    private Boolean active;
 
     private LocalDateTime createdAt;
 

@@ -1,4 +1,4 @@
-package com.library.application.config;
+package com.library.application.configurations;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

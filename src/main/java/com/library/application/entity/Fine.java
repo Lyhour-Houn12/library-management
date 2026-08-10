@@ -93,16 +93,23 @@ public class Fine {
      * @return Amount still owed
      */
     public Double getAmountOutstanding() {
-        return amount - amountPaid;
+        return Math.max(0D, amount - amountPaid);
     }
 
     public void applyPayment(Double paymentAmount) {
-        if(paymentAmount == null || this.amountPaid < 0){
-            throw new IllegalArgumentException("Amount or amount is negative");
+        if(paymentAmount == null || paymentAmount < 0) {
+            throw new IllegalArgumentException("Payment must be greater than zero");
         }
-        this.amountPaid = paymentAmount;
+        double outStanding = getAmountOutstanding();
+
+        if(paymentAmount > outStanding) {
+            throw new IllegalArgumentException("Payment amount exceeds outstanding balance");
+        }
+
+        this.amountPaid += paymentAmount;
 
         if(this.amountPaid >= this.amount){
+            this.amountPaid = this.amount;
             status = FineStatus.PAID;
             paidAt = LocalDateTime.now();
         }else if(this.amountPaid > 0){
@@ -110,4 +117,13 @@ public class Fine {
         }
 
     }
+
+    public void waive(User adminUser, String reason){
+        this.waivedBy = adminUser;
+        this.waivedAt = LocalDateTime.now();
+        this.waiverReason = reason;
+        this.status = FineStatus.WAIVED;
+    }
+
+
 }

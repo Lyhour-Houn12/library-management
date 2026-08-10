@@ -75,12 +75,11 @@ public class GenreController {
 
     }
 
-    /*
-    * @TODO LETTER ON
-    @GetMapping
-    public ResponseEntity<?> searchGenres(@RequestParam(required = false) @Valid String searchTerm, Pageable pageable) {
-        return ResponseEntity.status(HttpStatus.OK).body(genre.searchGenres(searchTerm, pageable));
-    }*/
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchGenres(@RequestParam(required = false) @Valid String searchTerm, @RequestParam(required = false, defaultValue = "0") Integer page, @RequestParam(required = false, defaultValue = "10") Integer size) {
+        return ResponseEntity.status(HttpStatus.OK).body(genre.searchGenres(searchTerm, page, size));
+    }
 
     @GetMapping("/sub-genres/{parentId}")
     public ResponseEntity<?> getSubGenresByParentId(@PathVariable Long parentId){

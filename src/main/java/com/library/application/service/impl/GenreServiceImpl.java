@@ -9,7 +9,9 @@ import com.library.application.repository.GenreRepository;
 import com.library.application.service.GenreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -178,9 +180,10 @@ public class GenreServiceImpl implements GenreService {
     }
 
     @Override
-    public PageResponse<GenreDTO> searchGenres(String searchTerm, Pageable pageable) {
+    public PageResponse<GenreDTO> searchGenres(String searchTerm, Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
         Page<Genre> genrePage = genreRepository.searchGenres(searchTerm, pageable);
-        return null;
+        return PageResponse.from(genrePage.map(genreMapper::toDTO));
     }
 
     @Override

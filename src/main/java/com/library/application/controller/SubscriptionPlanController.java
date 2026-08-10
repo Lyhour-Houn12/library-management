@@ -1,10 +1,15 @@
 package com.library.application.controller;
 
 import com.library.application.payload.dto.SubscriptionPlanDTO;
+import com.library.application.payload.request.SubscriptionPlanFilter;
 import com.library.application.payload.response.ApiResponse;
+import com.library.application.payload.response.PageResponse;
 import com.library.application.service.SubscriptionPlanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -49,6 +54,31 @@ public class SubscriptionPlanController {
     public ResponseEntity<?> getSubscriptionPlanCode(@PathVariable String planCode) {
         return ResponseEntity.ok(subscriptionPlanService.getSubscriptionPlanByCode(planCode));
     }
+
+
+    @PostMapping("/search")
+    public ResponseEntity<PageResponse<SubscriptionPlanDTO>> searchSubscriptionPlansByFilter(
+            @Valid @RequestBody (required = false) SubscriptionPlanFilter filter,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(subscriptionPlanService.searchPlans(filter, pageable));
+    }
+
+    @GetMapping("/currency/{currency}")
+    public ResponseEntity<?> getCurrency(@PathVariable String currency) {
+        return ResponseEntity.ok(subscriptionPlanService.getPlansByCurrency(currency));
+    }
+
+
+    @GetMapping("/exists/{planCode}")
+    public ResponseEntity<?> getSubscriptionPlanExists(@PathVariable String planCode) {
+        return new ResponseEntity<>(subscriptionPlanService.planCodeExists(planCode), HttpStatus.OK);
+    }
+
+    @PatchMapping("/admin/deactivate/{planId}")
+    public ResponseEntity<?> deactivatePlan(@PathVariable Long planId) {
+        return new ResponseEntity<>(subscriptionPlanService.deactivatePlan(planId), HttpStatus.OK);
+    }
+
 
 
 

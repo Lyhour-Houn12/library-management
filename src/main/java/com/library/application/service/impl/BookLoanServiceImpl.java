@@ -2,27 +2,27 @@ package com.library.application.service.impl;
 
 import com.library.application.domain.BookLoanStatus;
 import com.library.application.domain.BookLoanType;
+import com.library.application.domain.FineStatus;
+import com.library.application.domain.FineType;
 import com.library.application.entity.Book;
 import com.library.application.entity.BookLoan;
+import com.library.application.entity.Fine;
 import com.library.application.entity.User;
 import com.library.application.exception.BookException;
 import com.library.application.exception.BookLoanException;
+import com.library.application.exception.FineException;
 import com.library.application.mapper.BookLoanMapper;
+import com.library.application.payload.CheckoutStatistics;
 import com.library.application.payload.dto.BookLoanDTO;
 import com.library.application.payload.dto.SubscriptionDTO;
-import com.library.application.payload.request.BookLoanSearchRequest;
-import com.library.application.payload.request.CheckInRequest;
-import com.library.application.payload.request.CheckoutRequest;
-import com.library.application.payload.request.RenewalRequest;
+import com.library.application.payload.request.*;
 import com.library.application.payload.response.PageResponse;
-import com.library.application.repository.BookLoanRepository;
-import com.library.application.repository.BookRepository;
-import com.library.application.repository.UserRepository;
-import com.library.application.service.BookLoanService;
-import com.library.application.service.SubscriptionService;
-import com.library.application.service.UserService;
+import com.library.application.repository.*;
+import com.library.application.service.*;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +31,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -44,6 +45,13 @@ public class BookLoanServiceImpl implements BookLoanService {
     private final UserService userService;
     private final BookLoanMapper  bookLoanMapper;
     private final UserRepository userRepository;
+    private final FineCalculateService fineCalculateService;
+    private final FineRepository fineRepository;
+
+    @Setter
+    private ReservationService reservationService;  // Lazy injection to avoid circular dependency
+
+    private static final int DEFAULT_CHECKOUT_DAYS = 14;
 
 
     @Override
@@ -155,15 +163,16 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         bookLoan.setIsOverdue(false);
 
-        // update book copy
+        // update book available copy (only if not lost)
         if(condition != BookLoanStatus.LOST){
             Book book =  bookLoan.getBook();
             book.setAvailableCopies(book.getAvailableCopies() + 1);
             bookRepository.save(book);
+
+            // process next reservation if book becomes available
+            processNextReservation(book.getId());
         }
         bookLoan.setNotes("Returned book by user.");
-
-
 
         BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);
         return bookLoanMapper.toDto(savedBookLoan);
@@ -175,14 +184,32 @@ public class BookLoanServiceImpl implements BookLoanService {
                 .orElseThrow(() -> new BookLoanException("Book loan not found with given id: " +  request.getBookLoanId()));
 
         if(!bookLoan.canRenew()){
+            if(bookLoan.getIsOverdue()){
+                throw new BookLoanException("Cannot renew overdue books. Please return it back.");
+            }
+            if(bookLoan.getRenewalCount() > bookLoan.getMaxRenewal()){
+                throw new BookLoanException("Maximum renewal limit reached (" + bookLoan.getMaxRenewal() + ")");
+            }
             throw new BookLoanException("Book loan cannot be renewed.");
         }
-        bookLoan.setDueDate(bookLoan.getDueDate().plusDays(request.getExtensionDays()));
+
+        // 3. Update due date
+        int extensionDays = request.getExtensionDays() != null
+                ? request.getExtensionDays()
+                : DEFAULT_CHECKOUT_DAYS;
+        bookLoan.setDueDate(bookLoan.getDueDate().plusDays(extensionDays));
         bookLoan.setRenewalCount(bookLoan.getRenewalCount() + 1);
         bookLoan.setNotes(request.getNotes());
 
         BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);
         return bookLoanMapper.toDto(savedBookLoan);
+    }
+
+    @Override
+    public BookLoanDTO getBookLoanById(Long bookLoanId) {
+        BookLoan bookLoan = bookLoanRepository.findById(bookLoanId)
+                .orElseThrow(() -> new BookLoanException("Book loan not found with given id: " + bookLoanId));
+        return bookLoanMapper.toDto(bookLoan);
     }
 
     @Override
@@ -242,7 +269,7 @@ public class BookLoanServiceImpl implements BookLoanService {
     }
 
 
-    // @TOD0 WHEN IMPLEMENTING FINE
+
     @Override
     public Long updateOverdueBookLoans() {
         Pageable pageable = PageRequest.of(0, 1000);
@@ -250,15 +277,99 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         Long updateCount = 0L;
         for(BookLoan bookLoan : overduePage.getContent()){
-            if (bookLoan.getStatus() == BookLoanStatus.CHECKOUT) {
+            if (bookLoan.getStatus() == BookLoanStatus.CHECKOUT || bookLoan.getStatus() == BookLoanStatus.OVERDUE) {
                 bookLoan.setStatus(BookLoanStatus.OVERDUE);
                 bookLoan.setIsOverdue(true);
 
+                // calculate overdue day
+                int overdueDays = fineCalculateService.calculateOverdueDays(bookLoan.getDueDate(), LocalDate.now());
+                bookLoan.setOverdueDays(overdueDays);
                 bookLoanRepository.save(bookLoan);
+                // calculate fine
+                Double amount = fineCalculateService.calculateOverdueFine(bookLoan)
+                        .doubleValue();
+                Fine fine = fineRepository.findByBookLoanAndFineType(bookLoan, FineType.OVERDUE)
+                        .orElse(null);
+
+                if (fine == null) {
+
+                    fine = Fine.builder()
+                            .bookLoan(bookLoan)
+                            .user(bookLoan.getUser())
+                            .fineType(FineType.OVERDUE)
+                            .amount(amount)
+                            .amountPaid(0D)
+                            .status(FineStatus.PENDING)
+                            .reason("Book loan is overdue")
+                            .build();
+
+                } else if (fine.getStatus() != FineStatus.PAID
+                        && fine.getStatus() != FineStatus.WAIVED) {
+                    fine.setAmount(amount);
+                }
+
+                fineRepository.save(fine);
+
                 updateCount++;
             }
         }
         return updateCount;
+    }
+
+    @Override
+    public BookLoanDTO updateBookLoan(Long bookLoanId, UpdateBookLoanRequest updateRequest) {
+        BookLoan bookLoan = bookLoanRepository.findById(bookLoanId)
+                .orElseThrow(() -> new BookLoanException("Book Loan not found with given id: " + bookLoanId));
+        // 2. Update fields if provided (null values are ignored)
+        if (updateRequest.getStatus() != null) {
+            bookLoan.setStatus(updateRequest.getStatus());
+        }
+
+        if (updateRequest.getDueDate() != null) {
+            bookLoan.setDueDate(updateRequest.getDueDate());
+        }
+
+        if (updateRequest.getReturnDate() != null) {
+            bookLoan.setReturnDate(updateRequest.getReturnDate());
+        }
+
+        if (updateRequest.getMaxRenewals() != null) {
+            bookLoan.setMaxRenewal(updateRequest.getMaxRenewals());
+        }
+
+
+
+        if (updateRequest.getNotes() != null) {
+            String existingNotes = bookLoan.getNotes() != null ? bookLoan.getNotes() + "\n" : "";
+            bookLoan.setNotes(existingNotes + "Admin update: " + updateRequest.getNotes());
+        }
+
+        // 3. Save and return
+        BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);
+        return bookLoanMapper.toDto(savedBookLoan);
+    }
+
+    @Override
+    public CheckoutStatistics getCheckoutStatistics() {
+        long totalCheckouts = bookLoanRepository.count();
+
+        long totalActiveCheckout = bookLoanRepository.findAll()
+                .stream()
+                .filter(BookLoan::isActive)
+                .count();
+        long totalOverdueCheckout = bookLoanRepository
+                .findOverdueBookLoans(LocalDate.now(), PageRequest.of(0, Integer.MAX_VALUE))
+                .getTotalElements();
+        long totalReturns = bookLoanRepository.findByStatus(BookLoanStatus.RETURNED, PageRequest.of(0, Integer.MAX_VALUE))
+                .getTotalElements();
+        return new CheckoutStatistics(
+                totalCheckouts,
+                totalActiveCheckout,
+                totalOverdueCheckout,
+                totalReturns,
+                null,
+0
+        );
     }
 
     private Pageable createPageRequest(Integer page, Integer size, String sortBy, String sortDirection) {
@@ -287,6 +398,20 @@ public class BookLoanServiceImpl implements BookLoanService {
                 bookLoanPage.isLast(),
                 bookLoanPage.isEmpty()
         );
+    }
+
+    /**
+     * Process next reservation when book becomes available
+     */
+    private void processNextReservation(Long bookId){
+        if(reservationService != null){
+            try{
+                reservationService.processNextReservation(bookId);
+            }catch (Exception e){
+                // Log but don't fail the check-in process
+                System.err.println("Failed to process reservation for book " + bookId + ": " + e.getMessage());
+            }
+        }
     }
 
 

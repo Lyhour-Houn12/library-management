@@ -2,10 +2,7 @@ package com.library.application.controller;
 
 import com.library.application.domain.BookLoanStatus;
 import com.library.application.payload.dto.BookLoanDTO;
-import com.library.application.payload.request.BookLoanSearchRequest;
-import com.library.application.payload.request.CheckInRequest;
-import com.library.application.payload.request.CheckoutRequest;
-import com.library.application.payload.request.RenewalRequest;
+import com.library.application.payload.request.*;
 import com.library.application.payload.response.PageResponse;
 import com.library.application.service.BookLoanService;
 import jakarta.validation.Valid;
@@ -47,6 +44,12 @@ public class BookLoanController {
         return new ResponseEntity<>(bookLoanService.renewalBookLoan(renewalRequest), HttpStatus.ACCEPTED);
     }
 
+    @PutMapping("/update-overdue")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateOverdueBookLoan(){
+        return new ResponseEntity<>(bookLoanService.updateOverdueBookLoans(), HttpStatus.OK);
+    }
+
 
     @GetMapping("/mine")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
@@ -63,6 +66,12 @@ public class BookLoanController {
         return ResponseEntity.ok(bookLoans);
     }
 
+
+    @GetMapping("/{bookLoanId}")
+    public ResponseEntity<?> getBookLoanById(@PathVariable Long bookLoanId){
+        return new ResponseEntity<>(bookLoanService.getBookLoanById(bookLoanId), HttpStatus.OK);
+    }
+
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUserBookLoans(
@@ -71,10 +80,24 @@ public class BookLoanController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-            PageResponse<BookLoanDTO> bookLoans = bookLoanService.getUserBookLoans(
-                    userId, status, page, size);
-            return ResponseEntity.ok(bookLoans);
-        }
+        PageResponse<BookLoanDTO> bookLoans = bookLoanService.getUserBookLoans(userId, status, page, size);
+        return ResponseEntity.ok(bookLoans);
+    }
+
+    @PutMapping("/update-bookloan/{bookLoanId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateBookLoan(@PathVariable Long bookLoanId, @Valid @RequestBody UpdateBookLoanRequest updateBookLoanRequest) {
+        return new ResponseEntity<>(bookLoanService.updateBookLoan(bookLoanId, updateBookLoanRequest), HttpStatus.OK);
+    }
+
+
+    @GetMapping("/statistics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getBookLoanStatistics() {
+        return ResponseEntity.ok(bookLoanService.getCheckoutStatistics());
+    }
+
+
 
 }
 

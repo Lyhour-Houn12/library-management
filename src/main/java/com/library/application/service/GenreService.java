@@ -31,7 +31,7 @@ public interface GenreService {
 
     List<GenreDTO> getSubGenresByParentId(Long parentGenreId) ;
 
-    PageResponse<GenreDTO> searchGenres(String searchTerm, Pageable pageable);
+    PageResponse<GenreDTO> searchGenres(String searchTerm, Integer page, Integer size);
 
     long getTotalActiveGenres();
 

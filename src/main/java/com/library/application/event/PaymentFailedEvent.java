@@ -1,7 +1,6 @@
 package com.library.application.event;
 
 
-import com.library.application.domain.PaymentStatus;
 import com.library.application.domain.PaymentType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,6 +27,8 @@ public class PaymentFailedEvent {
     private String currency;
 
     private Long subscriptionId;
+
+    private Long fineId;
 
     private Long bookLoanId;
 

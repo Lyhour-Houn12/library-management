@@ -1,10 +1,9 @@
 package com.library.application.service.impl;
 
-import com.library.application.config.JwtProvider;
+import com.library.application.configurations.JwtProvider;
 import com.library.application.domain.UserRole;
 import com.library.application.entity.ResetPasswordToken;
 import com.library.application.entity.User;
-import com.library.application.exception.BadCredentialException;
 import com.library.application.exception.UserException;
 import com.library.application.mapper.UserMapper;
 import com.library.application.payload.dto.UserDTO;

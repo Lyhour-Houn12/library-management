@@ -7,6 +7,8 @@ import com.library.application.entity.*;
 import com.library.application.event.PaymentFailedEvent;
 import com.library.application.event.PaymentInitiatedEvent;
 import com.library.application.event.PaymentSuccessEvent;
+import com.library.application.event.listener.PaymentEventListener;
+import com.library.application.event.publisher.PaymentEventPublisher;
 import com.library.application.exception.FineException;
 import com.library.application.exception.PaymentException;
 import com.library.application.exception.SubscriptionException;
@@ -15,6 +17,7 @@ import com.library.application.mapper.PaymentMapper;
 import com.library.application.payload.dto.PaymentDTO;
 import com.library.application.payload.request.PaymentInitiateRequest;
 import com.library.application.payload.request.PaymentVerifyRequest;
+import com.library.application.payload.response.PageResponse;
 import com.library.application.payload.response.PaymentInitiateResponse;
 import com.library.application.payload.response.PaymentLinkResponse;
 import com.library.application.payload.response.RevenueStatisticResponse;
@@ -44,6 +47,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentMapper paymentMapper;
     private final FineRepository fineRepository;
     private final BookLoanRepository bookLoanRepository;
+    private final PaymentEventPublisher paymentEventPublisher;
 
     @Override
     public PaymentInitiateResponse initiatePayment(PaymentInitiateRequest request) {
@@ -140,11 +144,15 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setCompletedAt(LocalDateTime.now());
             log.info("Payment verified successfully: {}", payment.getId());
 
+            payment.setFailureReason(null);
+            payment.setFailedAt(null);
+
             paymentRepository.save(payment);
 
             publishPaymentSuccessEvent(payment);
         }else{
             payment.setStatus(PaymentStatus.FAILED);
+            payment.setFailedAt(LocalDateTime.now());
             payment.setFailureReason("Payment Verification Failed");
 
             paymentRepository.save(payment);
@@ -169,19 +177,19 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Page<PaymentDTO> getAllPayments(Pageable pageable) {
+    public PageResponse<PaymentDTO> getAllPayments(Pageable pageable) {
         Page<Payment> payments = paymentRepository.findAll(pageable);
-        return payments.map(paymentMapper::toDto);
+        return PageResponse.from(payments.map(paymentMapper::toDto));
     }
 
     @Override
-    public Page<PaymentDTO> getUserPayments(Long userId, Pageable pageable) {
+    public PageResponse<PaymentDTO> getUserPayments(Long userId, Pageable pageable) {
         if(!userRepository.existsById(userId)){
             throw new UserException(String.format("User %s not found", userId));
         }
         Page<Payment> payments = paymentRepository.findByUserIdAndActiveTrue(userId, pageable);
 
-        return payments.map(paymentMapper::toDto);
+        return PageResponse.from(payments.map(paymentMapper::toDto));
     }
 
     @Override
@@ -210,7 +218,9 @@ public class PaymentServiceImpl implements PaymentService {
 
         PaymentInitiateRequest request = new PaymentInitiateRequest();
         request.setUserId(payment.getUser().getId());
-        request.setSubscriptionId(payment.getSubscription().getId() != null ? payment.getSubscription().getId() : null);
+        request.setSubscriptionId(payment.getSubscription() != null ? payment.getSubscription().getId() : null);
+        request.setFineId(payment.getFine() != null ? payment.getFine().getId() : null);
+        request.setBookLoanId(payment.getBookLoan() != null ? payment.getBookLoan().getId() : null);
         request.setPaymentType(payment.getPaymentType());
         request.setGateway(payment.getGateway());
         request.setCurrency(payment.getCurrency() != null ? request.getCurrency() : "USD");
@@ -225,7 +235,6 @@ public class PaymentServiceImpl implements PaymentService {
     public RevenueStatisticResponse getMonthlyRevenue() {
         List<Payment> payments = paymentRepository.findAll();
 
-        int currentDay = LocalDateTime.now().getDayOfMonth();
         int currentYear = LocalDateTime.now().getYear();
         int currentMonth = LocalDateTime.now().getMonthValue();
         // filter only successful payment of this month
@@ -233,8 +242,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .filter(Payment::isSuccess)
                 .filter(payment -> payment.getCreatedAt() != null &&
                         payment.getCreatedAt().getYear() == currentYear &&
-                        payment.getCreatedAt().getMonthValue() == currentMonth &&
-                        payment.getCreatedAt().getDayOfMonth() == currentDay)
+                        payment.getCreatedAt().getMonthValue() == currentMonth)
                 .mapToDouble(Payment::getAmount)
                 .sum();
         String currency = payments.stream()
@@ -246,8 +254,7 @@ public class PaymentServiceImpl implements PaymentService {
         RevenueStatisticResponse response = new RevenueStatisticResponse();
         response.setMonthlyRevenue(totalRevenue);
         response.setYear(currentYear);
-        response.setMonthlyRevenue(currentMonth);
-        response.setDay(currentDay);
+        response.setMonth(currentMonth);
         response.setCurrency(currency);
         return response;
     }
@@ -276,6 +283,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .userName(payment.getUser().getUsername())
                 .checkoutUrl(checkoutUrl)
                 .build();
+        paymentEventPublisher.publishPaymentInitiated(event);
     }
 
     /**
@@ -293,11 +301,13 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(payment.getAmount())
                 .currency(payment.getCurrency())
                 .subscriptionId(payment.getSubscription() != null ? payment.getSubscription().getId() : null)
+                .fineId(payment.getFine() != null ? payment.getFine().getId() : null)
                 .gatewayPaymentId(payment.getGatewayPaymentId())
                 .transactionId(payment.getTransactionId())
                 .completedAt(payment.getCompletedAt())
                 .description(payment.getDescription())
                 .build();
+        paymentEventPublisher.publishPaymentSuccess(event);
     }
 
     /**
@@ -315,11 +325,13 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(payment.getAmount())
                 .currency(payment.getCurrency())
                 .subscriptionId(payment.getSubscription() != null ? payment.getSubscription().getId() : null)
+                .fineId(payment.getFine() != null ? payment.getFine().getId() : null)
                 .gatewayPaymentId(payment.getGatewayPaymentId())
                 .description(payment.getDescription())
                 .userEmail(payment.getUser().getEmail())
                 .userName(payment.getUser().getUsername())
                 .failedAt(payment.getFailedAt())
                 .build();
+        paymentEventPublisher.publishPaymentFailed(event);
     }
 }

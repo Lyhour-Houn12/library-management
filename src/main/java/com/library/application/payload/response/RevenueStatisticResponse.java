@@ -8,5 +8,4 @@ public class RevenueStatisticResponse {
     private String currency;
     private int year;
     private int month;
-    private int day;
 }

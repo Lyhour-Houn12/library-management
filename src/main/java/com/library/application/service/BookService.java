@@ -16,6 +16,8 @@ public interface BookService {
 
     List<BookDTO> createBooksBulk(List<BookDTO> bookDTOList);
 
+    BookDTO getBookById(Long bookId);
+
     PageResponse<BookDTO> searchBookWithFilter(BookSearchRequest bookSearchRequest);
 
     BookDTO updateBook(Long bookId, BookDTO bookDTO);

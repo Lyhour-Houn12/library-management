@@ -118,7 +118,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         // Subscription starts as inactive until payment is confirmed
         subscription.setIsActive(false);
 
-        Subscription savedSubscription = subscriptionRepository.save(subscription);
+        subscriptionRepository.save(subscription);
 
         // Create payment entity
         PaymentInitiateRequest  paymentInitiateRequest = PaymentInitiateRequest.builder()
@@ -159,23 +159,23 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public SubscriptionDTO activateSubscription(Long subscriptionId) {
+    public SubscriptionDTO activateSubscription(Long subscriptionId, Long paymentId) {
         log.info("Activating subscription: {}", subscriptionId);
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new SubscriptionException("Subscription Not Found"));
 
-//        Payment payment  = paymentRepository.findById(paymentId)
-//                .orElseThrow(() -> new SubscriptionException("Payment Not Found"));
-//
-//        // Verify payment is successful
-//        if(payment.getStatus() != PaymentStatus.SUCCESS){
-//            throw new SubscriptionException("Cannot activate subscription. Payment status is " + payment.getStatus());
-//        }
-//
-//        // Verify payment belongs to this subscription id
-//        if(!payment.getSubscription().getId().equals(subscriptionId)){
-//            throw new SubscriptionException("Cannot activate subscription. Payment subscription ID is " + subscription.getId());
-//        }
+        Payment payment  = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new SubscriptionException("Payment Not Found"));
+
+        // Verify payment is successful
+        if(payment.getStatus() != PaymentStatus.SUCCESS){
+            throw new SubscriptionException("Cannot activate subscription. Payment status is " + payment.getStatus());
+        }
+
+        // Verify payment belongs to this subscription id
+        if(!payment.getSubscription().getId().equals(subscriptionId)){
+            throw new SubscriptionException("Cannot activate subscription. Payment subscription ID is " + subscription.getId());
+        }
 
         // Active Subscription
         subscription.setIsActive(true);
@@ -228,6 +228,25 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return subscriptions.stream()
                 .map(subscriptionMapper::toDto)
                 .toList();
+    }
+
+    @Override
+    public PaymentInitiateResponse renewSubscription(Long planId, SubscriptionRequest request) {
+        Subscription oldSubscription = subscriptionRepository.findById(planId)
+                .orElseThrow(() -> new SubscriptionException("Subscription Not Found"));
+
+        if(oldSubscription.getIsActive()){
+            oldSubscription.setIsActive(false);
+            oldSubscription.setCancelledAt(LocalDateTime.now());
+            oldSubscription.setCancellationReason("Renewed to new subscription");
+            subscriptionRepository.save(oldSubscription);
+        }
+
+        request.setUserId(oldSubscription.getUser().getId());
+        if(request.getUserId() == null){
+            request.setPlanId(oldSubscription.getPlan().getId());
+        }
+        return createSubscriptionWithPayment(request);
     }
 
 

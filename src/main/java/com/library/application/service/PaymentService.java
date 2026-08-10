@@ -18,9 +18,9 @@ public interface PaymentService {
 
     PaymentDTO getPaymentByTransactionId(String transactionId);
 
-    Page<PaymentDTO> getAllPayments(Pageable pageable);
+    PageResponse<PaymentDTO> getAllPayments(Pageable pageable);
 
-    Page<PaymentDTO> getUserPayments(Long userId, Pageable pageable);
+    PageResponse<PaymentDTO> getUserPayments(Long userId, Pageable pageable);
 
     PaymentDTO cancelPayment(Long paymentId);
 

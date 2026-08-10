@@ -9,13 +9,18 @@ import java.util.Set;
 
 public interface UserService {
     User getUserByEmail(String email);
-    User getUserByJwtToken(String jwt);
-    User getUserById(Long userId);
-    Set<User> getUserByRole(UserRole role);
-    String getCurrentUserEmail();
-    List<UserDTO> listUsers();
-    User getCurrentUser();
 
+    User getUserByJwtToken(String jwt);
+
+    User getUserById(Long userId);
+
+    Set<User> getUserByRole(UserRole role);
+
+    String getCurrentUserEmail();
+
+    List<UserDTO> listUsers();
+
+    User getCurrentUser();
 
     long getTotalUserCount();
 }
