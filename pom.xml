@@ -53,6 +53,8 @@
 			<optional>true</optional>
 		</dependency>
 
+
+
 		<!-- JWT -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -91,6 +93,12 @@
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
 			<version>20250517</version>
+		</dependency>
+
+		<dependency>
+			<groupId>me.paulschwarz</groupId>
+			<artifactId>springboot4-dotenv</artifactId>
+			<version>5.0.1</version>
 		</dependency>
 
 		<!-- Test -->
