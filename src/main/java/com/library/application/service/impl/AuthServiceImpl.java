@@ -125,6 +125,9 @@ public class AuthServiceImpl implements AuthService {
     public void createPasswordResetToken(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UserException("User not found"));
 
+//        // Invalidate any existing unused tokens for this user
+//        passwordResetTokenRepository.deleteByUser(user);
+
         String token = UUID.randomUUID().toString();
         ResetPasswordToken resetPasswordToken = ResetPasswordToken.builder()
                 .expiryDate(LocalDateTime.now().plusMinutes(EXPIRATION_TIME))
@@ -135,10 +138,8 @@ public class AuthServiceImpl implements AuthService {
         passwordResetTokenRepository.save(resetPasswordToken);
 
         String resetLink = frontendUrl + token;
-        String subject = "Password Reset Token";
-        String body = "Your requested to request your password. Use this link (valid 5 minutes): " + resetLink;
 
-        emailService.sendEmail(user.getEmail(), subject, body);
+        emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
 
     }
 

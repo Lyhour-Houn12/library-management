@@ -5,12 +5,13 @@ import com.library.application.payload.dto.BookDTO;
 import com.library.application.payload.request.BookSearchRequest;
 import com.library.application.payload.response.PageResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface BookService {
 
-    BookDTO createBook(BookDTO bookDTO);
+    BookDTO createBook(BookDTO bookDTO, MultipartFile coverImage);
 
     BookDTO getBookByIsbn(String isbn);
 
@@ -20,7 +21,7 @@ public interface BookService {
 
     PageResponse<BookDTO> searchBookWithFilter(BookSearchRequest bookSearchRequest);
 
-    BookDTO updateBook(Long bookId, BookDTO bookDTO);
+    BookDTO updateBook(Long bookId, BookDTO bookDTO, MultipartFile coverImage);
 
     void deleteBookById(Long bookId);
 

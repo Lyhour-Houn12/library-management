@@ -4,6 +4,7 @@ package com.library.application.mapper;
 import com.library.application.entity.Genre;
 import com.library.application.payload.dto.GenreDTO;
 import com.library.application.repository.GenreRepository;
+import com.library.application.service.GenreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -46,7 +47,12 @@ public class GenreMapper {
         dto.setCode(genre.getCode());
         dto.setName(genre.getName());
         dto.setDescription(genre.getDescription());
-        dto.setDisplayOrder(genre.getDisplayOrder());
+        if(dto.getId() != null) {
+            Genre countByGenre = genreRepository.findById(dto.getId()).orElse(null);
+            if(countByGenre != null) {
+                dto.setBookCount(genreRepository.countBooksByGenre(countByGenre.getId()));
+            }
+        }
         dto.setActive(genre.getActive());
         dto.setCreatedAt(genre.getCreatedAt());
         dto.setUpdatedAt(genre.getUpdatedAt());

@@ -25,11 +25,13 @@ public interface GenreRepository extends JpaRepository<Genre, Long> {
     long countByActiveTrue();
 
     @Query("""
-        SELECT g FROM Genre g WHERE
-        LOWER(g.name) LIKE (CONCAT('%', :searchTerm, '%')) OR
-        LOWER(g.code) LIKE (CONCAT('%', :searchTerm, '%'))
-    """)
-    Page<Genre> searchGenres(@Param("searchTerm") String searchTerm, Pageable pageable);
+    SELECT g FROM Genre g WHERE
+    :searchTerm IS NULL
+    OR :searchTerm = '' OR
+    LOWER(g.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR
+    LOWER(g.code) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+""")
+    Page<Genre> findGenres(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     @Query("select count(b) from Book b where b.genre.id=:genreId")
     long countBooksByGenre(@Param("genreId") Long genreId);

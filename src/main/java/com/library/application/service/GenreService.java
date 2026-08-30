@@ -5,6 +5,7 @@ import com.library.application.payload.dto.GenreDTO;
 import com.library.application.payload.response.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +24,8 @@ public interface GenreService {
 
     void hardDeleteGenre(Long genreId) ;
 
+    PageResponse<GenreDTO> getGenresPage();
+
     List<GenreDTO> getAllActiveGenres();
 
     List<GenreDTO> getAllActiveGenresWithSubGenres();
@@ -31,7 +34,7 @@ public interface GenreService {
 
     List<GenreDTO> getSubGenresByParentId(Long parentGenreId) ;
 
-    PageResponse<GenreDTO> searchGenres(String searchTerm, Integer page, Integer size);
+    PageResponse<GenreDTO> getGenres(String searchTerm, Integer page, Integer size);
 
     long getTotalActiveGenres();
 

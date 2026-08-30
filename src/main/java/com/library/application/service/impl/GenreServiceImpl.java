@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,9 @@ public class GenreServiceImpl implements GenreService {
 
             if (!parentGenre.getActive()) {
                 throw new GenreException("Can not set inactive genre as parent");
+            }
+            if(parentGenre.getParentGenre() != null) {
+                throw new GenreException("Can not set sub-genre as parent genres");
             }
         }
         Genre genre = genreMapper.toEntity(genreDTO);
@@ -96,6 +100,9 @@ public class GenreServiceImpl implements GenreService {
     public GenreDTO updateGenre(Long genreId, GenreDTO genreDTO) {
         Genre existingGenre = genreRepository.findById(genreId)
                 .orElseThrow(() -> new GenreException("Genre with id: " + genreId + " not found" ));
+
+
+
         // Check if code is being changed and if new code already exists
         if(!existingGenre.getCode().equals(genreDTO.getCode())){
             if(genreRepository.existsByCode(genreDTO.getCode())){
@@ -114,11 +121,15 @@ public class GenreServiceImpl implements GenreService {
             if (!parentGenre.getActive()) {
                 throw new GenreException("Cannot set an inactive genre as parent");
             }
+            if(parentGenre.getParentGenre() != null){
+                throw new GenreException("Cannot set an sub-genre as parent");
+            }
             if(isCircularReference(genreId, genreDTO.getParentGenreId())){
                 throw new GenreException("Circular reference detected: parent genre cannot be a descendant of this genre");
             }
 
         }
+
 
         genreMapper.updateEntityFromDto(genreDTO, existingGenre);
         Genre updatedGenre =  genreRepository.save(existingGenre);
@@ -130,6 +141,14 @@ public class GenreServiceImpl implements GenreService {
                 .orElseThrow(() -> new GenreException("Genre with id: " + genreId + " not found" ));
         existingGenre.setActive(false);
         genreRepository.save(existingGenre);
+    }
+
+    @Override
+    public PageResponse<GenreDTO> getGenresPage() {
+
+
+
+        return null;
     }
 
     @Override
@@ -180,9 +199,9 @@ public class GenreServiceImpl implements GenreService {
     }
 
     @Override
-    public PageResponse<GenreDTO> searchGenres(String searchTerm, Integer page, Integer size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
-        Page<Genre> genrePage = genreRepository.searchGenres(searchTerm, pageable);
+    public PageResponse<GenreDTO> getGenres(String searchTerm, Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Genre> genrePage = genreRepository.findGenres(searchTerm, pageable);
         return PageResponse.from(genrePage.map(genreMapper::toDTO));
     }
 

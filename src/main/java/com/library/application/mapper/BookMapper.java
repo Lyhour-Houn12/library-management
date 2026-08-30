@@ -94,7 +94,6 @@ public class BookMapper {
         book.setPage(bookDTO.getPages());
         book.setPrice(bookDTO.getPrice());
         book.setCoverImage(bookDTO.getCoverImageUrl());
-
         if(bookDTO.getActive() != null){
             book.setActive(bookDTO.getActive());
         }

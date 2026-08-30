@@ -77,8 +77,8 @@ public class GenreController {
 
 
     @GetMapping("/search")
-    public ResponseEntity<?> searchGenres(@RequestParam(required = false) @Valid String searchTerm, @RequestParam(required = false, defaultValue = "0") Integer page, @RequestParam(required = false, defaultValue = "10") Integer size) {
-        return ResponseEntity.status(HttpStatus.OK).body(genre.searchGenres(searchTerm, page, size));
+    public ResponseEntity<?> getGenres(@RequestParam(required = false) @Valid String searchTerm, @RequestParam(required = false, defaultValue = "0") Integer page, @RequestParam(required = false, defaultValue = "10") Integer size) {
+        return ResponseEntity.status(HttpStatus.OK).body(genre.getGenres(searchTerm, page, size));
     }
 
     @GetMapping("/sub-genres/{parentId}")

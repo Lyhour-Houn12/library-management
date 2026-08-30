@@ -13,13 +13,16 @@ import com.library.application.repository.BookRepository;
 import com.library.application.repository.ReservationRepository;
 import com.library.application.service.BookService;
 import com.library.application.service.UserService;
+import com.library.application.service.cloud.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,9 +36,10 @@ public class BookServiceImpl implements BookService {
     private final UserService userService;
     private final BookLoanRepository bookLoanRepository;
     private final ReservationRepository reservationRepository;
+    private final CloudinaryService  cloudinaryService;
 
     @Override
-    public BookDTO createBook(BookDTO bookDTO) {
+    public BookDTO createBook(BookDTO bookDTO, MultipartFile coverImage) {
         if(bookRepository.existsByIsbn(bookDTO.getIsbn())) {
             throw new BookException("Book with ISBN " + bookDTO.getIsbn() + " already exists");
         }
@@ -43,6 +47,11 @@ public class BookServiceImpl implements BookService {
         Book book = bookMapper.toEntity(bookDTO);
         if(!book.isAvailableCopiesValid()){
             throw new BookException("Available copies can not exceed total copies");
+        }
+
+        if(coverImage != null && !coverImage.isEmpty()){
+            String imageUrl = cloudinaryService.uploadImage(coverImage);
+            book.setCoverImage(imageUrl);
         }
 
         Book bookSaved = bookRepository.save(book);
@@ -58,7 +67,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public BookDTO updateBook(Long bookId, BookDTO bookDTO) {
+    public BookDTO updateBook(Long bookId, BookDTO bookDTO, MultipartFile coverImage) {
         Book existingBook = bookRepository.findById(bookId)
                 .orElseThrow(() -> new BookException(String.format("Book with id = %s not found", bookId)));
 
@@ -72,6 +81,11 @@ public class BookServiceImpl implements BookService {
         }
 
         bookMapper.updateEntityFromDTO(bookDTO, existingBook);
+
+        if(coverImage != null && !coverImage.isEmpty()){
+            String imageUrl = cloudinaryService.uploadImage(coverImage);
+            existingBook.setCoverImage(imageUrl);
+        }
 
         Book updateBook = bookRepository.save(existingBook);
 
@@ -161,7 +175,7 @@ public class BookServiceImpl implements BookService {
                 bookSearchRequest.getAvailableOnly() != null ?  bookSearchRequest.getAvailableOnly() : false,
                 pageable
         );
-        return convertToPageResponse(bookPage);
+        return PageResponse.from(bookPage.map(bookMapper::toDTO));
     }
 
     @Override

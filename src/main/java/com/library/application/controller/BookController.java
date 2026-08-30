@@ -10,8 +10,10 @@ import com.library.application.service.BookService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -36,10 +38,10 @@ public class BookController {
     public ResponseEntity<?> getBookByIsbn(@PathVariable String isbn){
         return ResponseEntity.ok(bookService.getBookByIsbn(isbn));
     }
-    @PutMapping("/update/{bookId}")
-    public ResponseEntity<?> updateBook(@PathVariable Long bookId, @Valid @RequestBody BookDTO bookDTO){
+    @PutMapping(path = "/update/{bookId}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateBook(@PathVariable Long bookId, @Valid @RequestPart("book") BookDTO bookDTO, @RequestPart("coverImage") MultipartFile coverImage){
         try{
-            return ResponseEntity.ok(bookService.updateBook(bookId, bookDTO));
+            return ResponseEntity.ok(bookService.updateBook(bookId, bookDTO, coverImage));
         }catch (Exception e){
             return ResponseEntity.badRequest().body(new ApiResponse("Error updating book", false));
         }
